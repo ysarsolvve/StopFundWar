@@ -3,6 +3,7 @@ package com.ysar.stopfundwar
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.ysar.stopfundwar.navigation.SetupNavGraph
 import com.ysar.stopfundwar.ui.theme.OnBoardingComposeTheme
+import com.ysar.stopfundwar.util.Yolov5TFLiteDetector
 import com.ysar.stopfundwar.viewmodel.SplashViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject

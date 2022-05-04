@@ -3,23 +3,20 @@ package com.ysar.stopfundwar.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,7 +27,6 @@ import com.ysar.stopfundwar.navigation.Screen
 import com.ysar.stopfundwar.util.OnBoardingPage
 import com.ysar.stopfundwar.viewmodel.WelcomeViewModel
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 @OptIn(DelicateCoroutinesApi::class)
@@ -49,7 +45,7 @@ fun WelcomeScreen(
     val pagerState = rememberPagerState()
 
     OnBoardingPager(
-        item = pages, pagerState = pagerState, modifier = Modifier
+        items = pages, pagerState = pagerState, modifier = Modifier
             .fillMaxWidth()
             .background(color = Color.White), navController,welcomeViewModel
     )
@@ -85,16 +81,16 @@ fun WelcomeScreen(
 @ExperimentalPagerApi
 @Composable
 fun OnBoardingPager(
-    item: List<OnBoardingPage>,
+    items: List<OnBoardingPage>,
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     navController: NavHostController,
     welcomeViewModel: WelcomeViewModel
 ) {
-
+    val scope = rememberCoroutineScope()
     Box(modifier = modifier) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            HorizontalPager(state = pagerState, count = 3) { page ->
+            HorizontalPager(state = pagerState, count = items.size) { page ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -103,8 +99,8 @@ fun OnBoardingPager(
                 ) {
 
                     Image(
-                        painter = painterResource(id = item[page].image),
-                        contentDescription = item[page].title,
+                        painter = painterResource(id = items[page].image),
+                        contentDescription = items[page].title,
                         modifier = Modifier
                             .fillMaxWidth()
                             .fillMaxHeight(),
@@ -130,9 +126,9 @@ fun OnBoardingPager(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        PagerIndicator(items = item, currentPage = pagerState.currentPage)
+                        PagerIndicator(items = items, currentPage = pagerState.targetPage)
                         Text(
-                            text = item[pagerState.currentPage].title,
+                            text = items[pagerState.targetPage].title,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 20.dp, end = 30.dp),
@@ -143,38 +139,45 @@ fun OnBoardingPager(
                         )
 
                         Text(
-                            text = item[pagerState.currentPage].description,
+                            text = items[pagerState.targetPage].description,
                             modifier = Modifier.padding(top = 20.dp, start = 40.dp, end = 20.dp),
                             color = Color.Gray,
                             fontSize = 17.sp,
                             textAlign = TextAlign.Center,
                             fontWeight = FontWeight.ExtraLight
                         )
-
-                        Button(
-                            modifier = Modifier
-                                .padding(top = 20.dp)
-                                .clip(CircleShape),
-                            onClick = {
-                                welcomeViewModel.saveOnBoardingState(completed = true)
-                                navController.popBackStack()
-                                navController.navigate(Screen.Main.route)
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = Color.Black
-                            ),
-                            contentPadding = PaddingValues(vertical = 20.dp, horizontal = 44.dp),
-
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_vector),
-                                contentDescription = "",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
                     }
                 }
+            }
+        }
+        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 70.dp)) {
+            Button(
+                modifier = Modifier
+                    .clip(CircleShape),
+                onClick = {
+                    when (val current = pagerState.currentPage){
+                        items.lastIndex -> {
+                            welcomeViewModel.saveOnBoardingState(completed = true)
+                            navController.popBackStack()
+                            navController.navigate(Screen.Main.route)
+                        }
+                        else -> scope.launch { pagerState.animateScrollToPage(current.inc(), 0f) }
+                    }
+
+//
+                },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color.Black
+                ),
+                contentPadding = PaddingValues(vertical = 20.dp, horizontal = 44.dp),
+
+                ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_vector),
+                    contentDescription = "",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

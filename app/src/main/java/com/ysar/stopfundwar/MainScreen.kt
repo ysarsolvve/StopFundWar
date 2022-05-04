@@ -42,8 +42,7 @@ fun BottomBar(navController: NavHostController) {
     val currentDestination = navBackStackEntry?.destination
 
     BottomNavigation (
-        backgroundColor = Color.White,
-        contentColor = Color.Black
+        backgroundColor = Color.White
             ) {
         screens.forEach { screen ->
             AddItem(
@@ -69,7 +68,7 @@ fun RowScope.AddItem(
             )
         },
         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-        unselectedContentColor = LocalContentColor.current.copy(alpha = ContentAlpha.disabled),
+//        unselectedContentColor = LocalContentColor.current.copy(alpha = ContentAlpha.disabled),
         onClick = {
             navController.navigate(screen.route) {
                 popUpTo(navController.graph.findStartDestination().id)
