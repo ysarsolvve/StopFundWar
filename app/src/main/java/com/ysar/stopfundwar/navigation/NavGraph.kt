@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.ysar.stopfundwar.screen.CompaniesScreen
 import com.ysar.stopfundwar.screen.WelcomeScreen
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.ysar.stopfundwar.MainScreen
@@ -36,11 +35,8 @@ fun SetupNavGraph(
 fun BottomNavGraph(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = BottomBarScreen.Companies.route
+        startDestination = BottomBarScreen.Camera.route
     ) {
-        composable(route = BottomBarScreen.Companies.route) {
-            CompaniesScreen()
-        }
         composable(route = BottomBarScreen.Camera.route) {
             CameraScreen()
         }

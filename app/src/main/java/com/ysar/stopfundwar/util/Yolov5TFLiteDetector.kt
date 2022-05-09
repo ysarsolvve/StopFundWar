@@ -29,55 +29,18 @@ import java.util.*
 
 class Yolov5TFLiteDetector {
     val inputSize = Size(640, 640)
-    val outputSize = intArrayOf(1, 25200, 20)
-    private var IS_INT8 = false
+    val outputSize = intArrayOf(1, 25200, 34)
     private val DETECT_THRESHOLD = 0.25f
     private val IOU_THRESHOLD = 0.45f
     private val IOU_CLASS_DUPLICATED_THRESHOLD = 0.7f
-    private val MODEL_YOLOV5S = "yolov5s-fp16-320-metadata.tflite"
-    private val BEST = "best.tflite"
-
-    //    private final String MODEL_YOLOV5S = "yolov5s-dynamic.tflite";
-    private val MODEL_YOLOV5N = "yolov5n-fp16-320.tflite"
-    private val MODEL_YOLOV5M = "yolov5m-fp16-320.tflite"
-    private val MODEL_YOLOV5S_INT8 = "yolov5s-int8-320.tflite"
     val labelFile = "coco_label.txt"
-    var input5SINT8QuantParams = MetadataExtractor.QuantizationParams(0.003921568859368563f, 0)
-    var output5SINT8QuantParams = MetadataExtractor.QuantizationParams(0.006305381190031767f, 5)
-    private var MODEL_FILE: String? = null
+    private var MODEL_FILE: String = "best.tflite"
     private var tflite: Interpreter? = null
     private var associatedAxisLabels: List<String>? = null
-    var options = Interpreter.Options()
-//    var modelFile: String?
-//        get() = MODEL_FILE
-//        set(modelFile) {
-//            when (modelFile) {
-//                "best" -> {
-//                    IS_INT8 = false
-//                    MODEL_FILE = BEST
-//                }
-//                "yolov5s" -> {
-//                    IS_INT8 = false
-//                    MODEL_FILE = MODEL_YOLOV5S
-//                }
-//                "yolov5n" -> {
-//                    IS_INT8 = false
-//                    MODEL_FILE = MODEL_YOLOV5N
-//                }
-//                "yolov5m" -> {
-//                    IS_INT8 = false
-//                    MODEL_FILE = MODEL_YOLOV5M
-//                }
-//                "yolov5s-int8" -> {
-//                    IS_INT8 = true
-//                    MODEL_FILE = MODEL_YOLOV5S_INT8
-//                }
-//                else -> Log.i("tfliteSupport", "Only yolov5s/n/m/sint8 can be load!")
-//            }
-//        }
+    private var options = Interpreter.Options()
 
     /**
-     * 初始化模型, 可以通过 addNNApiDelegate(), addGPUDelegate()提前加载相应代理
+     * Инициализируйте модель, вы можете заранее загрузить соответствующего агента с помощью addNNApiDelegate(), addGPUDelegate()
      *
      * @param activity
      */
@@ -96,74 +59,49 @@ class Yolov5TFLiteDetector {
     }
 
     /**
-     * 检测步骤
+     * Этапы тестирования
      *
      * @param bitmap
      * @return
      */
     fun detect(bitmap: Bitmap?): ArrayList<Recognition> {
 
-        // yolov5s-tflite的输入是:[1, 320, 320,3], 摄像头每一帧图片需要resize,再归一化
-        var yolov5sTfliteInput: TensorImage
-        val imageProcessor: ImageProcessor
-        if (IS_INT8) {
-            imageProcessor = ImageProcessor.Builder()
-                .add(ResizeOp(inputSize.height, inputSize.width, ResizeOp.ResizeMethod.BILINEAR))
-                .add(NormalizeOp(0f, 255f))
-                .add(
-                    QuantizeOp(
-                        input5SINT8QuantParams.zeroPoint.toFloat(),
-                        input5SINT8QuantParams.scale
-                    )
-                )
-                .add(CastOp(DataType.UINT8))
-                .build()
-            yolov5sTfliteInput = TensorImage(DataType.UINT8)
-        } else {
-            imageProcessor = ImageProcessor.Builder()
-                .add(ResizeOp(inputSize.height, inputSize.width, ResizeOp.ResizeMethod.BILINEAR))
-                .add(NormalizeOp(0f, 255f))
-                .build()
-            yolov5sTfliteInput = TensorImage(DataType.FLOAT32)
-        }
+        Log.e(
+            "Detector",
+            "Start"
+        )
+
+        // входные данные yolov5s-tflite: [1, 640, 640,3], камере необходимо изменить размер и нормализовать каждый кадр
+        Log.e("Detector","imageProcessor Start")
+        val imageProcessor: ImageProcessor = ImageProcessor.Builder()
+            .add(ResizeOp(inputSize.height, inputSize.width, ResizeOp.ResizeMethod.BILINEAR))
+            .add(NormalizeOp(0f, 255f))
+            .build()
+        var yolov5sTfliteInput: TensorImage = TensorImage(DataType.FLOAT32)
+
         yolov5sTfliteInput.load(bitmap)
         yolov5sTfliteInput = imageProcessor.process(yolov5sTfliteInput)
 
+        Log.e("Detector","imageProcessor End")
 
-        // yolov5s-tflite的输出是:[1, 6300, 85], 可以从v5的GitHub release处找到相关tflite模型, 输出是[0,1], 处理到320.
-        var probabilityBuffer: TensorBuffer
-        probabilityBuffer = if (IS_INT8) {
-            TensorBuffer.createFixedSize(outputSize, DataType.UINT8)
-        } else {
-            TensorBuffer.createFixedSize(outputSize, DataType.FLOAT32)
-        }
+        // Выход yolov5s-tflite: [1,25200,34],
+        var probabilityBuffer: TensorBuffer = TensorBuffer.createFixedSize(outputSize, DataType.FLOAT32)
 
-        // 推理计算
+        Log.e("Detector","Инференциальные вычисления Start ${tflite}")
+        // Инференциальные вычисления
         if (null != tflite) {
-            // 这里tflite默认会加一个batch=1的纬度
+            // Здесь tflite по умолчанию добавит широту batch=1
             tflite!!.run(yolov5sTfliteInput.buffer, probabilityBuffer.buffer)
         }
+        Log.e("Detector","Инференциальные вычисления End")
 
-        // 这里输出反量化,需要是模型tflite.run之后执行.
-        if (IS_INT8) {
-            val tensorProcessor = TensorProcessor.Builder()
-                .add(
-                    DequantizeOp(
-                        output5SINT8QuantParams.zeroPoint.toFloat(),
-                        output5SINT8QuantParams.scale
-                    )
-                )
-                .build()
-            probabilityBuffer = tensorProcessor.process(probabilityBuffer)
-        }
-
-        // 输出数据被平铺了出来
+        // Выходные данные выкладываются плиткой
         val recognitionArray = probabilityBuffer.floatArray
-        // 这里将flatten的数组重新解析(xywh,obj,classes).
+        // Здесь происходит повторный разбор уплощенного массива (xywh,obj,classes).
         val allRecognitions = ArrayList<Recognition>()
         for (i in 0 until outputSize[1]) {
             val gridStride = i * outputSize[2]
-            // 由于yolov5作者在导出tflite的时候对输出除以了image size, 所以这里需要乘回去
+            // Поскольку при экспорте tflite автор yolov5 разделил вывод на размер изображения, здесь нужно умножить его обратно
             val x = recognitionArray[0 + gridStride] * inputSize.width
             val y = recognitionArray[1 + gridStride] * inputSize.height
             val w = recognitionArray[2 + gridStride] * inputSize.width
@@ -198,22 +136,30 @@ class Yolov5TFLiteDetector {
         }
         //        Log.i("tfliteSupport", "recognize data size: "+allRecognitions.size());
 
-        // 非极大抑制输出
+        Log.e("Detector","val nmsRecognitions = nms(allRecognitions) Start")
+
+        // Неэкстремально подавленный выход
         val nmsRecognitions = nms(allRecognitions)
-        // 第二次非极大抑制, 过滤那些同个目标识别到2个以上目标边框为不同类别的
+
+        Log.e("Detector","val nmsFilterBoxDuplicationRecognitions = nmsAllClass(nmsRecognitions) Start")
+
+        // Второе неэкстремальное подавление, фильтрация тех, у которых более 2 границ одной цели идентифицированы как разные классы
         val nmsFilterBoxDuplicationRecognitions = nmsAllClass(nmsRecognitions)
 
-        // 更新label信息
+        Log.e("Detector","Обновить информацию о метке Start")
+
+        // Обновить информацию о метке
         for (recognition in nmsFilterBoxDuplicationRecognitions) {
             val labelId = recognition.labelId
             val labelName = associatedAxisLabels!![labelId]
             recognition.labelName = labelName
         }
+        Log.e("Detector","Обновить информацию о метке End")
         return nmsFilterBoxDuplicationRecognitions
     }
 
     /**
-     * 非极大抑制
+     * Неэкстремальное ингибирование
      *
      * @param allRecognitions
      * @return
@@ -221,16 +167,16 @@ class Yolov5TFLiteDetector {
     protected fun nms(allRecognitions: ArrayList<Recognition>): ArrayList<Recognition> {
         val nmsRecognitions = ArrayList<Recognition>()
 
-        // 遍历每个类别, 在每个类别下做nms
+        // итерация по каждой категории, делая nms по каждой категории
         for (i in 0 until outputSize[2] - 5) {
-            // 这里为每个类别做一个队列, 把labelScore高的排前面
+            // Создайте очередь для каждой категории, помещая в нее сначала те, у которых высокий показатель labelScore
             val pq = PriorityQueue<Recognition>(
                 25200
             ) { l, r -> // Intentionally reversed to put high confidence at the head of the queue.
                 java.lang.Float.compare(r.confidence!!, l.confidence!!)
             }
 
-            // 相同类别的过滤出来, 且obj要大于设定的阈值
+            // отфильтровать одинаковые категории, при этом obj должен быть больше установленного порога
             for (j in allRecognitions.indices) {
 //                if (allRecognitions.get(j).getLabelId() == i) {
                 if (allRecognitions[j].labelId == i && allRecognitions[j].confidence!! > DETECT_THRESHOLD) {
@@ -239,9 +185,9 @@ class Yolov5TFLiteDetector {
                 }
             }
 
-            // nms循环遍历
+            // обход цикла nms
             while (pq.size > 0) {
-                // 概率最大的先拿出来
+                // Сначала убираются наиболее вероятные
                 val a = arrayOfNulls<Recognition>(pq.size)
                 val detections: Array<Recognition> = pq.toArray(a)
                 val max = detections[0]
@@ -259,7 +205,7 @@ class Yolov5TFLiteDetector {
     }
 
     /**
-     * 对所有数据不区分类别做非极大抑制
+     * Неэкстремальное подавление всех данных независимо от категории
      *
      * @param allRecognitions
      * @return
@@ -272,14 +218,14 @@ class Yolov5TFLiteDetector {
             java.lang.Float.compare(r.confidence!!, l.confidence!!)
         }
 
-        // 相同类别的过滤出来, 且obj要大于设定的阈值
+        // отфильтровать одинаковые категории, при этом obj должен быть больше установленного порога
         for (j in allRecognitions.indices) {
             if (allRecognitions[j].confidence!! > DETECT_THRESHOLD) {
                 pq.add(allRecognitions[j])
             }
         }
         while (pq.size > 0) {
-            // 概率最大的先拿出来
+            // Сначала убираются наиболее вероятные.
             val a = arrayOfNulls<Recognition>(pq.size)
             val detections: Array<Recognition> = pq.toArray(a)
             val max = detections[0]
@@ -321,7 +267,7 @@ class Yolov5TFLiteDetector {
     }
 
     /**
-     * 添加NNapi代理
+     * Добавление прокси-сервера NNapi
      */
     fun addNNApiDelegate() {
         var nnApiDelegate: NnApiDelegate? = null
@@ -342,7 +288,7 @@ class Yolov5TFLiteDetector {
     }
 
     /**
-     * 添加GPU代理
+     * Добавление прокси-серверов GPU
      */
     fun addGPUDelegate() {
         val compatibilityList = CompatibilityList()
@@ -357,7 +303,7 @@ class Yolov5TFLiteDetector {
     }
 
     /**
-     * 添加线程数
+     * Количество добавленных threads
      * @param thread
      */
     fun addThread(thread: Int) {

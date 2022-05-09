@@ -1,7 +1,7 @@
 nivea
-bonduelle
-palmolive
 colgate
+palmolive
+bonduelle
 hipp
 protex
 sanex
@@ -13,3 +13,17 @@ kitkat
 nescafe
 maggi
 nestea
+purina felix
+purina friskies
+purina gourmet
+purina one
+purina pro plan
+purina dog chow
+pampers
+ariel
+tide
+lenor
+always
+discreet
+naturella
+tampax

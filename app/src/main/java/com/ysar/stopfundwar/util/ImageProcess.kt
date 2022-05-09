@@ -1,26 +1,31 @@
 package com.ysar.stopfundwar.util
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.camera.core.ImageProxy
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.util.Log
 import android.util.Size
-import androidx.camera.core.Preview
 import androidx.camera.view.PreviewView
-import com.ysar.stopfundwar.screen.SourceInfo
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
-import java.util.concurrent.Executor
 
-class ImageProcess {
+
+class ImageProcess(context: Context) {
+    val yolov5TFLiteDetector = Yolov5TFLiteDetector()
     private val kMaxChannelValue = 262143
 
+    init {
+        yolov5TFLiteDetector.initialModel(context)
+        yolov5TFLiteDetector.addGPUDelegate()
+    }
+
     /**
-     * cameraX planes数据处理成yuv字节数组
+     * обработка данных плоскостей cameraX в массивы байтов yuv
      * @param planes
      * @param yuvBytes
      */
@@ -32,7 +37,7 @@ class ImageProcess {
             if (yuvBytes[i] == null) {
                 yuvBytes[i] = ByteArray(buffer.capacity())
             }
-            buffer[yuvBytes[i]]
+            buffer[yuvBytes[i]!!]
         }
     }
 
@@ -107,7 +112,7 @@ class ImageProcess {
     }
 
     /**
-     * 计算图片旋转矩阵
+     * Вычисление матрицы поворота изображения
      * @param srcWidth
      * @param srcHeight
      * @param dstWidth
@@ -191,7 +196,6 @@ class ImageProcess {
         image: ImageProxy,
         onDetectionFinished: (List<Recognition>) -> Unit,
         previewView: PreviewView,
-        yolov5TFLiteDetector: Yolov5TFLiteDetector
     ) {
         val rotation = 0
         val previewHeight = previewView.height
@@ -298,6 +302,10 @@ class ImageProcess {
         )
         val recognitions = yolov5TFLiteDetector.detect(modelInputBitmap)
         onDetectionFinished(recognitions)
+        Log.e(
+            "ImageProxy",
+            "onDetectionFinished(recognitions) ${recognitions}  "
+        )
         image.close()
     }
 

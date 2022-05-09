@@ -1,17 +1,18 @@
 package com.ysar.stopfundwar
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.magnifier
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -34,16 +35,15 @@ fun MainScreen() {
 @Composable
 fun BottomBar(navController: NavHostController) {
     val screens = listOf(
-        BottomBarScreen.Companies,
         BottomBarScreen.Camera,
-        BottomBarScreen.Charity,
+//        BottomBarScreen.Charity,
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    BottomNavigation (
+    BottomNavigation(
         backgroundColor = Color.White
-            ) {
+    ) {
         screens.forEach { screen ->
             AddItem(
                 screen = screen,
@@ -62,13 +62,26 @@ fun RowScope.AddItem(
 ) {
     BottomNavigationItem(
         icon = {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = screen.icon),
-                contentDescription = "Navigation Icon"
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box() {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = screen.icon),
+                        contentDescription = "Navigation Icon"
+                    )
+                }
+                Box(Modifier.padding(top = 10.dp)) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.point),
+                        contentDescription = "Navigation Icon"
+                    )
+                }
+            }
+
         },
         selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-//        unselectedContentColor = LocalContentColor.current.copy(alpha = ContentAlpha.disabled),
+        unselectedContentColor = LocalContentColor.current.copy(alpha = ContentAlpha.disabled),
         onClick = {
             navController.navigate(screen.route) {
                 popUpTo(navController.graph.findStartDestination().id)

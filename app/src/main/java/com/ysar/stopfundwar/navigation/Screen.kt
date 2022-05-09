@@ -11,11 +11,6 @@ sealed class BottomBarScreen(
     val route: String,
     val icon: Int,
 ) {
-    object Companies : BottomBarScreen(
-        route = "companies",
-        icon = R.drawable.companies
-    )
-
     object Camera : BottomBarScreen(
         route = "camera",
         icon = R.drawable.camera
@@ -23,6 +18,6 @@ sealed class BottomBarScreen(
 
     object Charity : BottomBarScreen(
         route = "charity",
-        icon = R.drawable.charity2
+        icon = R.drawable.charity
     )
 }

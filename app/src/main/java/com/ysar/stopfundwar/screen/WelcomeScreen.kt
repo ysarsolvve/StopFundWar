@@ -97,7 +97,6 @@ fun OnBoardingPager(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top
                 ) {
-
                     Image(
                         painter = painterResource(id = items[page].image),
                         contentDescription = items[page].title,
@@ -107,8 +106,6 @@ fun OnBoardingPager(
                         alignment = Alignment.TopCenter
 
                     )
-
-
                 }
             }
 
